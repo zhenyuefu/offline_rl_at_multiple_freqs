@@ -4,7 +4,7 @@ import absl.app
 import absl.flags
 import gym
 
-from dau.code.envs.wrappers import WrapContinuousPendulum
+from dau.code.envs.wrappers import WrapContinuousPendulum, WrapContinuousPendulumSparse
 from viskit.logging import logger, setup_logger
 from .conservative_sac import ConservativeSAC
 from .model import TanhGaussianPolicy, FullyConnectedQFunction, SamplerPolicy
@@ -14,7 +14,7 @@ from .utils import *
 
 FLAGS_DEF = define_flags_with_default(
     env='halfcheetah-medium-v2',
-    max_traj_length=1000,
+    max_traj_length=200,
     seed=42,
     device='cpu',
     save_model=False,
@@ -31,7 +31,7 @@ FLAGS_DEF = define_flags_with_default(
     policy_log_std_offset=-1.0,
 
     n_epochs=800,
-    n_train_step_per_epoch=1000,
+    n_train_step_per_epoch=100,
     eval_period=10,
     eval_n_trajs=5,
     load_model='',
@@ -69,10 +69,11 @@ def main(argv):
 
     if "pendulum" in FLAGS.env:
         datasets, eval_samplers = {}, {}
-        for dt in [.02]:
+        for dt in [.02, .01]:
             env = gym.make('Pendulum-v1').unwrapped
             env.dt = dt
-            eval_samplers[dt] = TrajSampler(WrapContinuousPendulum(env), FLAGS.max_traj_length)
+            eval_samplers[dt] = TrajSampler(WrapContinuousPendulumSparse(WrapContinuousPendulum(env)),
+                                            FLAGS.max_traj_length)
             if FLAGS.half_angle:
                 if dt == .005 or dt == .01:
                     half_angle = True
@@ -81,48 +82,48 @@ def main(argv):
             else:
                 half_angle = False
             datasets[dt] = load_pendulum_dataset(
-                f"/Users/zhenyue/Projects/M2/rlmf/offline_rl_at_multiple_freqs/dau/pendulum_dataset_{str(dt)[2:]}.hdf5",
+                f"/Users/zhenyue/Projects/M2/rlmf/offline_rl_at_multiple_freqs/dau/pendulum_{str(dt)[2:]}.hdf5",
                 half_angle=half_angle)
 
     # elif 'kitchen' in FLAGS.env:
-        # datasets, eval_samplers = {}, {}
-        # env = gym.make(FLAGS.env)
-        # datasets[40] = load_d4rl_dataset(env)
-        # datasets[40]['terminals'] = datasets[40]['dones']
-        #
-        # datasets[30] = load_kitchen_dataset(
-        #     '/iris/u/kayburns/continuous-rl/CQL/experiments/collect/kitchen-complete-v0/8e25ba5f337a44d4a27aedc077c4a9bf/buffer.h5py',
-        #     traj_length=666,
-        #     splice=False,
-        #     filter_bad=True)
-        #
-        #
-        # env30 = gym.make(FLAGS.env).unwrapped
-        # env30.frame_skip = 30
-        # assert env30.dt == 30 * .002
-        # eval_samplers[30] = TrajSampler(env30, FLAGS.max_traj_length, action_scale=1.0)
-        #
-        # env40 = gym.make(FLAGS.env).unwrapped
-        # assert env40.dt == 40 * .002
-        # eval_samplers[40] = TrajSampler(env40, FLAGS.max_traj_length, action_scale=1.0)
+    # datasets, eval_samplers = {}, {}
+    # env = gym.make(FLAGS.env)
+    # datasets[40] = load_d4rl_dataset(env)
+    # datasets[40]['terminals'] = datasets[40]['dones']
+    #
+    # datasets[30] = load_kitchen_dataset(
+    #     '/iris/u/kayburns/continuous-rl/CQL/experiments/collect/kitchen-complete-v0/8e25ba5f337a44d4a27aedc077c4a9bf/buffer.h5py',
+    #     traj_length=666,
+    #     splice=False,
+    #     filter_bad=True)
+    #
+    #
+    # env30 = gym.make(FLAGS.env).unwrapped
+    # env30.frame_skip = 30
+    # assert env30.dt == 30 * .002
+    # eval_samplers[30] = TrajSampler(env30, FLAGS.max_traj_length, action_scale=1.0)
+    #
+    # env40 = gym.make(FLAGS.env).unwrapped
+    # assert env40.dt == 40 * .002
+    # eval_samplers[40] = TrajSampler(env40, FLAGS.max_traj_length, action_scale=1.0)
 
-        # env25 = gym.make(FLAGS.env).unwrapped
-        # env25.frame_skip = 25
-        # assert env25.dt == 25 * .002
-        # eval_samplers[25] = TrajSampler(env25, FLAGS.max_traj_length, action_scale=1.0)
+    # env25 = gym.make(FLAGS.env).unwrapped
+    # env25.frame_skip = 25
+    # assert env25.dt == 25 * .002
+    # eval_samplers[25] = TrajSampler(env25, FLAGS.max_traj_length, action_scale=1.0)
 
-        # env35 = gym.make(FLAGS.env).unwrapped
-        # env35.frame_skip = 35
-        # assert env35.dt == 35 * .002
-        # eval_samplers[35] = TrajSampler(env35, FLAGS.max_traj_length, action_scale=1.0)
+    # env35 = gym.make(FLAGS.env).unwrapped
+    # env35.frame_skip = 35
+    # assert env35.dt == 35 * .002
+    # eval_samplers[35] = TrajSampler(env35, FLAGS.max_traj_length, action_scale=1.0)
 
-        # env45 = gym.make(FLAGS.env).unwrapped
-        # env45.frame_skip = 45
-        # assert env45.dt == 45 * .002
-        # eval_samplers[45] = TrajSampler(env45, FLAGS.max_traj_length, action_scale=1.0)
-        
+    # env45 = gym.make(FLAGS.env).unwrapped
+    # env45.frame_skip = 45
+    # assert env45.dt == 45 * .002
+    # eval_samplers[45] = TrajSampler(env45, FLAGS.max_traj_length, action_scale=1.0)
+
     else:
-        eval_sampler = TrajSampler(gym.make(FLAGS.env).unwrapped, FLAGS.max_traj_length) # TODO
+        eval_sampler = TrajSampler(gym.make(FLAGS.env).unwrapped, FLAGS.max_traj_length)  # TODO
 
     if FLAGS.load_model:
         loaded_model = wandb_logger.load_pickle_from_filename(FLAGS.load_model)
@@ -131,7 +132,7 @@ def main(argv):
         policy = sac.policy
     else:
         if FLAGS.dt_feat:
-            obs_shape = list(eval_samplers.values())[0].env.observation_space.shape[0]+1
+            obs_shape = list(eval_samplers.values())[0].env.observation_space.shape[0] + 1
         else:
             obs_shape = list(eval_samplers.values())[0].env.observation_space.shape[0]
         action_shape = list(eval_samplers.values())[0].env.action_space.shape
@@ -189,7 +190,7 @@ def main(argv):
                     batch_dt = subsample_flat_batch_n(
                         datasets[dt], per_dataset_batch_size, max_steps)
                     if FLAGS.dt_feat:
-                        dt_feat = np.ones((per_dataset_batch_size, max_steps, 1))*dt
+                        dt_feat = np.ones((per_dataset_batch_size, max_steps, 1)) * dt
                         norm_dt = (dt_feat - np.mean(dts)) / np.std(dts)
                         batch_dt['observations'] = np.concatenate([
                             batch_dt['observations'], norm_dt], axis=2
@@ -206,18 +207,18 @@ def main(argv):
                 batch = batch_to_torch(batch, FLAGS.device)
                 if FLAGS.N_steps:
                     if FLAGS.all_same_N:
-                        n_steps = torch.Tensor([FLAGS.N_steps/min(dts) for dt in dts])
+                        n_steps = torch.Tensor([FLAGS.N_steps / min(dts) for dt in dts])
                     else:
-                        n_steps = torch.Tensor([FLAGS.N_steps/dt for dt in dts])
+                        n_steps = torch.Tensor([FLAGS.N_steps / dt for dt in dts])
                 else:
                     n_steps = torch.Tensor([1 for dt in dts])
                 n_steps = n_steps.repeat_interleave(per_dataset_batch_size)
                 # TODO weird: this is replicating the same indexing per_dataset_batch_size times
                 if FLAGS.shared_q_target:
-                    batch['next_observations'][:,(n_steps-1).long(),-1] = (max(dts) - np.mean(dts)) / np.std(dts)
+                    batch['next_observations'][:, (n_steps - 1).long(), -1] = (max(dts) - np.mean(dts)) / np.std(dts)
                 # discount_arr = torch.Tensor([FLAGS.cql.discount ** (1) for dt in dts]).cuda()
-                discount_arr = torch.Tensor([FLAGS.cql.discount ** (dt/max(dts)) for dt in dts]).cuda()
-                discount_arr =  discount_arr.repeat_interleave(per_dataset_batch_size)
+                discount_arr = torch.Tensor([FLAGS.cql.discount ** (dt / max(dts)) for dt in dts])
+                discount_arr = discount_arr.repeat_interleave(per_dataset_batch_size)
                 metrics.update(prefix_metrics(sac.train(batch, discount_arr, n_steps), 'sac'))
 
         with Timer() as eval_timer:
@@ -241,10 +242,10 @@ def main(argv):
                             min_traj_len = min([len(t['actions']) for t in trajs])
                             actions = [t['actions'][:min_traj_len] for t in trajs]
                             mean_actions = np.mean(actions, axis=0)
-                            metrics['hip0'] = wandb_logger.plot(mean_actions[:,0])
-                            metrics['knee0'] = wandb_logger.plot(mean_actions[:,1])
-                            metrics['hip1'] = wandb_logger.plot(mean_actions[:,2])
-                            metrics['knee1'] = wandb_logger.plot(mean_actions[:,3])
+                            metrics['hip0'] = wandb_logger.plot(mean_actions[:, 0])
+                            metrics['knee0'] = wandb_logger.plot(mean_actions[:, 1])
+                            metrics['hip1'] = wandb_logger.plot(mean_actions[:, 2])
+                            metrics['knee1'] = wandb_logger.plot(mean_actions[:, 3])
                         elif "pendulum" in FLAGS.env:
                             norm_dt = (dt - np.mean(dts)) / np.std(dts)
                             generate_pendulum_visualization(
@@ -276,6 +277,7 @@ def main(argv):
     if FLAGS.save_model:
         save_data = {'sac': sac, 'variant': variant, 'epoch': epoch}
         wandb_logger.save_pickle(save_data, 'model.pkl')
+
 
 if __name__ == '__main__':
     absl.app.run(main)

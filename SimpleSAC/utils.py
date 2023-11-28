@@ -58,12 +58,12 @@ class WandBLogger(object):
         if updates is not None:
             config.update(ConfigDict(updates).copy_and_resolve_references())
         return config
-    
+
     @staticmethod
     def plot(y_values):
-        x_values = np.arange(0, len(y_values)/10, .1)
+        x_values = np.arange(0, len(y_values) / 10, .1)
         data = [[x, y] for (x, y) in zip(x_values, y_values)]
-        table = wandb.Table(data=data, columns = ["x", "y"])
+        table = wandb.Table(data=data, columns=["x", "y"])
         return wandb.plot.line(table, "x", "y")
 
     def __init__(self, config, variant):
@@ -111,15 +111,15 @@ class WandBLogger(object):
     def save_pickle(self, obj, filename):
         with open(os.path.join(self.config.output_dir, filename), 'wb') as fout:
             pickle.dump(obj, fout)
-    
+
     def save_image(self, image, filename):
         plt.imshow(image)
         plt.savefig(os.path.join(self.config.output_dir, filename))
-    
+
     def load_pickle(self, loaddir):
         with open(os.path.join(loaddir, 'model.pkl'), 'rb') as fout:
             return pickle.load(fout)
-    
+
     def load_pickle_from_filename(self, loadpath):
         with open(loadpath, 'rb') as fout:
             return pickle.load(fout)
@@ -197,21 +197,23 @@ def flatten_config_dict(config, prefix=None):
     return output
 
 
-
 def prefix_metrics(metrics, prefix):
     return {
         '{}/{}'.format(prefix, key): value for key, value in metrics.items()
     }
+
 
 # Pendulum visualizations adapted from https://github.com/ctallec/continuous-rl
 def th_to_arr(tens: torch.Tensor) -> np.ndarray:
     """Tensorable to numpy array."""
     return tens.cpu().detach().numpy()
 
+
 def arr_to_th(arr) -> torch.Tensor:
     """Arrayable to tensor."""
 
-    return torch.from_numpy(arr).float().to('cuda')
+    return torch.from_numpy(arr).float()
+
 
 def generate_pendulum_visualization(policy, qf1, qf2, logger, filename, dt_feat, dt):
     nb_pixels = 50
@@ -223,7 +225,7 @@ def generate_pendulum_visualization(policy, qf1, qf2, logger, filename, dt_feat,
     state_space = arr_to_th(state_space).reshape(-1, 3)
 
     observation = state_space
-    
+
     if dt_feat:
         dt_feat = (torch.ones((state_space.shape[0], 1)) * dt).cuda()
         observation = torch.hstack([state_space, dt_feat])
@@ -248,10 +250,12 @@ def vid_from_frames(imgs, output_file):
     if output_file.endswith('.mp4'):
         clip.write_videofile(output_file)
 
+
 def np_unstack(array, axis):
     arr = np.split(array, array.shape[axis], axis)
     arr = [a.squeeze() for a in arr]
     return arr
+
 
 def plot_q_over_traj(q_estimates, rewards, images, output_file):
     """
@@ -285,9 +289,8 @@ def plot_q_over_traj(q_estimates, rewards, images, output_file):
 
     plt.tight_layout()
 
-    canvas.draw() 
+    canvas.draw()
     out_image = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
     out_image = out_image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
     plt.savefig(output_file)
     return out_image
-

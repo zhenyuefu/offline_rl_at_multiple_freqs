@@ -104,14 +104,14 @@ class TrajSampler(object):
                     successes.append(0)
                 next_observations.append(next_observation)
                 if video and traj == 0:
-                    if 'rgb_array' in self.env.metadata['render.modes']:
-                        if 'kitchen' in self.env.spec.id:
-                            from d4rl.kitchen.adept_envs.franka.kitchen_multitask_v0 import KitchenTaskRelaxV1
-                            imgs.append(KitchenTaskRelaxV1.render(self.env, 'rgb_array'))
-                        else: # pendulum
-                            imgs.append(self.env.render(mode='rgb_array'))
-                    else: # for metaworld
-                        imgs.append(self.env.render(offscreen=True))
+                    # if 'rgb_array' in self.env.metadata['render.modes']:
+                    #     if 'kitchen' in self.env.spec.id:
+                    #         from d4rl.kitchen.adept_envs.franka.kitchen_multitask_v0 import KitchenTaskRelaxV1
+                    #         imgs.append(KitchenTaskRelaxV1.render(self.env, 'rgb_array'))
+                    #     else: # pendulum
+                    imgs.append(self.env.render(mode='rgb_array'))
+                    # else: # for metaworld
+                    #     imgs.append(self.env.render(offscreen=True))
 
 
                 if replay_buffer is not None:
@@ -140,8 +140,8 @@ class TrajSampler(object):
                     q_estimates = []
                     for q in qs:
                         q_estimates.append(
-                            q(torch.Tensor(observations).cuda(),
-                            torch.Tensor(actions).cuda()).cpu().detach().numpy())
+                            q(torch.Tensor(observations),
+                            torch.Tensor(actions)).detach().numpy())
                     plot_q_over_traj(
                         q_estimates, rewards, imgs, f'{file_path_stem}_q.jpg')
 
