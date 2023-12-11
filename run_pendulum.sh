@@ -6,17 +6,17 @@
 #SBATCH --job-name="cql"
 #SBATCH --time=3-0:0
 
-source /sailhome/kayburns/.bashrc                                                  
+#source /sailhome/kayburns/.bashrc
 # source /sailhome/kayburns/set_cuda_paths.sh                                        
-conda deactivate
-conda activate py3.7_torch1.8
-cd /iris/u/kayburns/continuous-rl/
-export PYTHONPATH="$PYTHONPATH:$(pwd)"
-cd /iris/u/kayburns/continuous-rl/CQL
-export PYTHONPATH="$PYTHONPATH:$(pwd)"
-export MJLIB_PATH=/sailhome/kayburns/anaconda3/envs/py3.7_torch1.8/lib/python3.7/site-packages/mujoco_py/binaries/linux/mujoco210/bin/libmujoco210.so
-Xvfb :0 &
-DISPLAY=:0 python -m SimpleSAC.conservative_sac_main \
+#conda deactivate
+#conda activate py3.7_torch1.8
+#cd /iris/u/kayburns/continuous-rl/
+#export PYTHONPATH="$PYTHONPATH:$(pwd)"
+#cd /iris/u/kayburns/continuous-rl/CQL
+#export PYTHONPATH="$PYTHONPATH:$(pwd)"
+#export MJLIB_PATH=/sailhome/kayburns/anaconda3/envs/py3.7_torch1.8/lib/python3.7/site-packages/mujoco_py/binaries/linux/mujoco210/bin/libmujoco210.so
+#Xvfb :0 & DISPLAY=:0
+python -m SimpleSAC.conservative_sac_main \
   --env "pendulum" \
   --logging.output_dir "./rebuttal/pendulum/" \
   --logging.online True \

@@ -1,14 +1,4 @@
-import os
-import time
-from copy import deepcopy
-import uuid
-
-import numpy as np
-import pprint
-
 import gym
-import torch
-import d4rl
 
 import absl.app
 import absl.flags
@@ -20,7 +10,7 @@ from .sampler import TrajSampler
 from .utils import *
 from viskit.logging import logger, setup_logger
 from dau.code.envs.biped import Walker
-from dau.code.envs.wrappers import WrapContinuousPendulumSparse
+from dau.code.envs.wrappers import WrapContinuousPendulumSparse, WrapContinuousPendulum
 from metaworld.envs import ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE
 
 FLAGS_DEF = define_flags_with_default(
@@ -83,7 +73,8 @@ def main(argv):
         for dt in [.01, .02, .005]:
             env = gym.make('Pendulum-v1').unwrapped
             env.dt = dt
-            eval_samplers[dt] = TrajSampler(WrapContinuousPendulumSparse(env), FLAGS.max_traj_length)
+            eval_samplers[dt] = TrajSampler(WrapContinuousPendulumSparse(WrapContinuousPendulum(env)),
+                                            FLAGS.max_traj_length)
             if FLAGS.half_angle:
                 if dt == .005 or dt == .01:
                     half_angle = True
@@ -92,7 +83,7 @@ def main(argv):
             else:
                 half_angle = False
             datasets[dt] = load_pendulum_dataset(
-                f"/iris/u/kayburns/continuous-rl/dau/logdir/continuous_pendulum_sparse1/cdau/half_buffer_0_{str(dt)[1:]}/data0.h5py",
+                f"/Users/zhenyue/Projects/M2/rlmf/offline_rl_at_multiple_freqs/dau/pendulum_{str(dt)[2:]}.hdf5",
                 half_angle=half_angle)
     elif "door-open-v2-goal-observable" in FLAGS.env:
         # find correct buffer file

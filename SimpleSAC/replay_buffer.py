@@ -160,15 +160,16 @@ def load_pendulum_dataset(h5path, half_angle=False):
         dones=dataset_file["dones"][:].astype(np.float32),
     )
     # subsample trajectories first
-    num_episodes = dataset['dones'].reshape(-1, 256).sum(0)[0]
-    episode_length = int(10000 / num_episodes)
+    length = dataset['observations'].shape[0]
+    num_episodes = dataset['dones'].reshape(-1, 10).sum(0)[0]
+    episode_length = int(length / num_episodes)
     for k, v in dataset.items():
         if len(v.shape) > 1:
             dim_obs = v.shape[1]
         else:
             dim_obs = 1
 
-        v = v.reshape(-1, episode_length, 256, dim_obs) # this only works for pendulum
+        v = v.reshape(-1, episode_length, 10, dim_obs) # this only works for pendulum
         # v = v[:,:,:10,:]
         dataset[k] = v.transpose(0, 2, 1, 3).reshape(-1, dim_obs)
     # then select out correct angles
