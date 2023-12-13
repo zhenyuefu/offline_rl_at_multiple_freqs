@@ -33,6 +33,8 @@ class WrapContinuousPendulum(ActionWrapper):
     def action(self, action):
         return np.clip(2 * action, -2, 2)
 
+def angle_normalize(x):
+    return ((x + np.pi) % (2 * np.pi)) - np.pi
 
 class WrapContinuousPendulumSparse(RewardWrapper, ActionWrapper):
     """ Combined Wrapper for Continuous Pendulum with Modified Action and Sparse Reward. """
@@ -50,13 +52,13 @@ class WrapContinuousPendulumSparse(RewardWrapper, ActionWrapper):
 
     def reward(self, reward):
         # Get the environment's current state, e.g., angle and angular velocity
-        th, thdot = self.env.state  # Assumed that self.env.state is accessible
+        th, thdot = self.state  # Assumed that self.env.state is accessible
 
         # Define the balanced condition with reasonable thresholds
         angle_threshold = 0.1  # ±0.1 radians
-        velocity_threshold = 1.0  # ±1 radian/second
+        velocity_threshold = 0.5  # ±1 radian/second
 
-        if -angle_threshold <= th <= angle_threshold and abs(thdot) < velocity_threshold:
+        if abs(angle_normalize(th)) < angle_threshold and abs(thdot) < velocity_threshold:
             # Sparse reward scaled by dt when the pendulum is near balanced
             return 100 * self.dt
         else:
