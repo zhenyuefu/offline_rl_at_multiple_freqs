@@ -33,7 +33,8 @@ class WrapContinuousPendulum(ActionWrapper):
     def action(self, action):
         return np.clip(2 * action, -2, 2)
 
-class WrapContinuousPendulumSparse(ActionWrapper, RewardWrapper):
+
+class WrapContinuousPendulumSparse(RewardWrapper, ActionWrapper):
     """ Combined Wrapper for Continuous Pendulum with Modified Action and Sparse Reward. """
 
     def __init__(self, env, dt=1.0):
