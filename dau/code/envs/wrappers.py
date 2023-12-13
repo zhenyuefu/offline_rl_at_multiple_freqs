@@ -36,11 +36,6 @@ class WrapContinuousPendulum(ActionWrapper):
 
 class WrapContinuousPendulumSparse(RewardWrapper, ActionWrapper):
     """ Combined Wrapper for Continuous Pendulum with Modified Action and Sparse Reward. """
-
-    def __init__(self, env, dt=1.0):
-        super().__init__(env)
-        self.dt = dt
-
     @property
     def action_space(self):
         return Box(low=-1, high=1, shape=(1,))
