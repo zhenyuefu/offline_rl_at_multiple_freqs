@@ -149,3 +149,6 @@ class OfflineAgent(CompoundStateful, Agent, Cudaable):
 
     def advantage(self, obs: Arrayable, action: Tensorable) -> Tensor:
         return self._critic.advantage(obs, action, self._actor)
+
+    def save_buffer(self, file: str):
+        self._sampler.save(file)

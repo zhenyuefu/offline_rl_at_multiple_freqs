@@ -1,5 +1,7 @@
 """Define memory sampler"""
 from typing import Optional, Tuple, Any
+
+import h5py
 import numpy as np
 from abstract import Arrayable
 from convert import check_array
@@ -107,6 +109,25 @@ class MemorySampler:
 
     def observe(self, priorities: Arrayable):
         pass
+
+    def save(self, filename: str) -> None:
+        """
+        Save the data in the MemorySampler to an HDF5 file.
+
+        :param filename: Name of the HDF5 file to save the data.
+        """
+        with h5py.File(filename, 'w') as f:
+            # Determine the limit up to which data should be saved
+            limit = self._cur if not self._full else self._true_size
+
+            # Save data up to the determined limit
+            f.create_dataset('obs', data=self._obs[:limit].astype(np.float32))
+            f.create_dataset('actions', data=self._action[:limit].astype(np.float32))
+            f.create_dataset('next_obs', data=self._next_obs[:limit].astype(np.float32))
+            f.create_dataset('rewards', data=self._reward[:limit].astype(np.float32))
+            f.create_dataset('dones', data=self._done[:limit].astype(np.float32))
+            if self._time_limit is not None:
+                f.create_dataset('time_limits', data=self._time_limit[:limit].astype(np.float32))
 
     @property
     def reference_obs(self):

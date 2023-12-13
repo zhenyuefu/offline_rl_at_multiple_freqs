@@ -19,24 +19,6 @@ from mylog import log, logto, log_video
 from parse import setup_args
 from config import configure
 
-import h5py
-
-
-def save_pendulum_dataset(buffer: MemorySampler, filename):
-    """
-    Save MemorySampler data to an HDF5 file in a format compatible with the load_pendulum_dataset function.
-
-    :param buffer: Instance of MemorySampler (your replay buffer).
-    :param filename: Name of the HDF5 file to save the data.
-    """
-    with h5py.File(filename, 'w') as f:
-        f.create_dataset('obs', data=buffer._obs.astype(np.float32))
-        f.create_dataset('actions', data=buffer._action.astype(np.float32))
-        f.create_dataset('next_obs', data=buffer._next_obs.astype(np.float32))
-        f.create_dataset('rewards', data=buffer._reward.astype(np.float32))
-        f.create_dataset('dones', data=buffer._done.astype(np.float32))
-
-
 def train(nb_steps: int, env: Env, agent: Agent, start_obs: Arrayable):
     """Trains for one epoch.
 
@@ -197,7 +179,7 @@ def main(args):
                 state_dict["epoch"] = e
                 torch.save(state_dict, agent_file)
                 R = new_R
-    save_pendulum_dataset(agent._sampler, f'../pendulum_dataset_{str(dt)[2:]}.hdf5')
+    agent.save(f'../pendulum_dataset_{str(dt)[2:]}.hdf5')
     env.close()
     eval_env.close()
 
