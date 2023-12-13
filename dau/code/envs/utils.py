@@ -6,7 +6,7 @@ from envs.wrappers import TimeLimit
 import numpy as np
 from envs.pusher import DiscretePusherEnv, ContinuousPusherEnv
 from envs.hill import HillEnv
-from envs.wrappers import WrapContinuousPendulum, WrapPendulum,WrapContinuousPendulumSparse
+from envs.wrappers import WrapPendulum,WrapContinuousPendulumSparse
 from envs.biped import WalkerHardcore, Walker
 
 def tile_images(img_nhwc):
@@ -183,7 +183,7 @@ def make_env(env_id: str, dt: float, time_limit: float): # noqa: C901
     elif env_id == 'continuous_pendulum':
         env = gym.make('Pendulum-v1').unwrapped
         env.dt = dt
-        env = WrapContinuousPendulumSparse(WrapContinuousPendulum(env))
+        env = WrapContinuousPendulumSparse(env)
     elif env_id == 'continuous_pusher':
         env = ContinuousPusherEnv()
         env.dt = dt

@@ -33,17 +33,39 @@ class WrapContinuousPendulum(ActionWrapper):
     def action(self, action):
         return np.clip(2 * action, -2, 2)
 
+class WrapContinuousPendulumSparse(ActionWrapper, RewardWrapper):
+    """ Combined Wrapper for Continuous Pendulum with Modified Action and Sparse Reward. """
 
-class WrapContinuousPendulumSparse(RewardWrapper):
+    def __init__(self, env, dt=1.0):
+        super().__init__(env)
+        self.dt = dt
+
+    @property
+    def action_space(self):
+        return Box(low=-1, high=1, shape=(1,))
+
+    @action_space.setter
+    def action_space(self, value):
+        self.env.action_space = value
+
+    def action(self, action):
+        # Scale and clip the action
+        return np.clip(2 * action, -2, 2)
+
     def reward(self, reward):
-        # 获取环境的当前状态，例如角度和角速度
-        th, thdot = self.state
+        # Get the environment's current state, e.g., angle and angular velocity
+        th, thdot = self.env.state  # Assumed that self.env.state is accessible
 
-        # 定义平衡的条件
-        if -0.25 <= th <= 0.25 and abs(thdot) < 0.5:
-            return 10  # 摆锤处于平衡状态时的正奖励
+        # Define the balanced condition with reasonable thresholds
+        angle_threshold = 0.1  # ±0.1 radians
+        velocity_threshold = 1.0  # ±1 radian/second
+
+        if -angle_threshold <= th <= angle_threshold and abs(thdot) < velocity_threshold:
+            # Sparse reward scaled by dt when the pendulum is near balanced
+            return 100 * self.dt
         else:
-            return 0  # 摆锤不处于平衡状态时的负奖励
+            # No reward when the pendulum is not in the balanced state
+            return 0
 
 
 class TimeLimit(Wrapper):
