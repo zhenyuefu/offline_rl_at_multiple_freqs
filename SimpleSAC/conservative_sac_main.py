@@ -10,7 +10,7 @@ from .sampler import TrajSampler
 from .utils import *
 from viskit.logging import logger, setup_logger
 from dau.code.envs.biped import Walker
-from dau.code.envs.wrappers import WrapContinuousPendulumSparse, WrapContinuousPendulum
+from dau.code.envs.wrappers import WrapContinuousPendulumSparse
 from metaworld.envs import ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE
 
 FLAGS_DEF = define_flags_with_default(
@@ -73,7 +73,7 @@ def main(argv):
         for dt in [.01, .02, .005]:
             env = gym.make('Pendulum-v1').unwrapped
             env.dt = dt
-            eval_samplers[dt] = TrajSampler(WrapContinuousPendulumSparse(WrapContinuousPendulum(env)),
+            eval_samplers[dt] = TrajSampler(WrapContinuousPendulumSparse(env),
                                             FLAGS.max_traj_length)
             if FLAGS.half_angle:
                 if dt == .005 or dt == .01:
