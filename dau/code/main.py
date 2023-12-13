@@ -179,7 +179,7 @@ def main(args):
                 state_dict["epoch"] = e
                 torch.save(state_dict, agent_file)
                 R = new_R
-    agent.save(f'../pendulum_dataset_{str(dt)[2:]}.hdf5')
+    agent.save_buffer(f'../pendulum_dataset_{str(dt)[2:]}.hdf5')
     env.close()
     eval_env.close()
 
