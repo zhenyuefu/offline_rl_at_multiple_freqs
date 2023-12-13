@@ -83,7 +83,7 @@ def main(argv):
             else:
                 half_angle = False
             datasets[dt] = load_pendulum_dataset(
-                f"/Users/zhenyue/Projects/M2/rlmf/offline_rl_at_multiple_freqs/dau/pendulum_{str(dt)[2:]}.hdf5",
+                f"/root/autodl-tmp/rlmf/dau/pendulum_{str(dt)[2:]}.hdf5",
                 half_angle=half_angle)
     elif "door-open-v2-goal-observable" in FLAGS.env:
         # find correct buffer file
