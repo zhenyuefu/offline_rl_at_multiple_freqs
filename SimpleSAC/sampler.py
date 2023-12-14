@@ -140,7 +140,7 @@ class TrajSampler(object):
                     q_estimates = []
                     for q in qs:
                         q_estimates.append(
-                            q(torch.Tensor(observations).cuda(),
+                            q(torch.Tensor(np.array(observations)).cuda(),
                             torch.Tensor(actions).cuda()).cpu().detach().numpy())
                     plot_q_over_traj(
                         q_estimates, rewards, imgs, f'{file_path_stem}_q.jpg')
