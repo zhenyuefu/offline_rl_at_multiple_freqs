@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 #SBATCH --partition=iris-hi
 #SBATCH --exclude=iris-hp-z8,iris1,iris4
 #SBATCH --mem=32G
@@ -20,7 +20,7 @@ python -m SimpleSAC.conservative_sac_main \
   --env "pendulum" \
   --logging.output_dir "./rebuttal/pendulum/" \
   --logging.online True \
-  --logging.project 'rebuttal' \
+  --logging.project 'mf_pendulum' \
   --cql.cql_min_q_weight 5 \
   --cql.policy_lr 3e-4 \
   --cql.qf_lr 3e-4 \

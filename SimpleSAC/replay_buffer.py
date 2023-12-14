@@ -65,11 +65,11 @@ class ReplayBuffer(object):
     def sample(self, batch_size):
         indices = np.random.randint(len(self), size=batch_size)
         return self.select(indices)
-    
+
     def sample_n(self, batch_size, n):
-        indices = np.random.randint(len(self)-n, size=batch_size)
+        indices = np.random.randint(len(self) - n, size=batch_size)
         indices = np.repeat(indices, n) + np.tile(np.arange(n), batch_size)
-        batch = self.select(indices) # B * N, D
+        batch = self.select(indices)  # B * N, D
         # reshape to B, N, D
         for k, v in batch.items():
             if len(v.shape) < 2:
@@ -82,7 +82,7 @@ class ReplayBuffer(object):
             if k == 'next_observations':
                 # shift dones to prevent overwriting next_obs
                 dones_shift = np.roll(batch['dones'], 1, axis=1)
-                dones_shift[:,0,:] = 0
+                dones_shift[:, 0, :] = 0
                 batch[k] = np.logical_not(dones_shift) * v
             else:
                 batch[k] = np.logical_not(batch['dones']) * v
@@ -111,7 +111,7 @@ class ReplayBuffer(object):
         dataset_file.create_dataset(
             "dones", data=self._dones[:self._size, ...])
         dataset_file.close()
-    
+
     def generator(self, batch_size, n_batchs=None):
         i = 0
         while n_batchs is None or i < n_batchs:
@@ -151,30 +151,31 @@ def load_d4rl_dataset(env):
     )
 
 def load_pendulum_dataset(h5path, half_angle=False):
-    dataset_file = h5py.File(h5path, "r")
-    dataset = dict(
-        observations=dataset_file["obs"][:].astype(np.float32),
-        actions=dataset_file["actions"][:].astype(np.float32),
-        next_observations=dataset_file["next_obs"][:].astype(np.float32),
-        rewards=dataset_file["rewards"][:].astype(np.float32),
-        dones=dataset_file["dones"][:].astype(np.float32),
-    )
+    dataset = load_h5(h5path)
     # subsample trajectories first
-    length = dataset['observations'].shape[0]
-    num_episodes = dataset['dones'].reshape(-1, 10).sum(0)[0]
-    episode_length = int(length / num_episodes)
+    # find the last done = 1
+    last_done = np.where(dataset['dones'] == 1)[0][-1]
+    length = last_done + 1
+    dataset['observations'] = dataset['observations'][:length]
+    dataset['actions'] = dataset['actions'][:length]
+    dataset['next_observations'] = dataset['next_observations'][:length]
+    dataset['rewards'] = dataset['rewards'][:length]
+    dataset['dones'] = dataset['dones'][:length]
+    nb_envs = 12
+    num_episodes = dataset['dones'].reshape(-1, nb_envs).sum(0)[0]
+    episode_length = int(length / num_episodes / nb_envs)
     for k, v in dataset.items():
         if len(v.shape) > 1:
             dim_obs = v.shape[1]
         else:
             dim_obs = 1
 
-        v = v.reshape(-1, episode_length, 10, dim_obs) # this only works for pendulum
+        v = v.reshape(-1, episode_length, nb_envs, dim_obs)  # this only works for pendulum
         # v = v[:,:,:10,:]
         dataset[k] = v.transpose(0, 2, 1, 3).reshape(-1, dim_obs)
     # then select out correct angles
     if half_angle:
-        mask = dataset['observations'][:,1] >= 0
+        mask = dataset['observations'][:, 1] >= 0
     for k, v in dataset.items():
         if half_angle:
             v = v[mask]
@@ -190,7 +191,8 @@ def load_pendulum_dataset(h5path, half_angle=False):
     # dataset['rewards'] = - (angle_normalize(th) ** 2 + 0.1 * thdot**2 + 0.001 * (u**2))
     return dataset
 
-def load_kitchen_dataset(h5path, traj_length, splice, filter_bad):
+
+def load_h5(h5path):
     dataset_file = h5py.File(h5path, "r")
     dataset = dict(
         observations=dataset_file["obs"][:].astype(np.float32),
@@ -199,11 +201,16 @@ def load_kitchen_dataset(h5path, traj_length, splice, filter_bad):
         rewards=dataset_file["rewards"][:].astype(np.float32),
         dones=dataset_file["dones"][:].astype(np.float32),
     )
+    return dataset
+
+
+def load_kitchen_dataset(h5path, traj_length, splice, filter_bad):
+    dataset = load_h5(h5path)
     # track terminal states to prevent indexing across trajs in n-step returns
     if dataset['dones'].sum():
         dones = dataset['dones'].nonzero()[0]
         dataset['terminals'] = np.zeros_like(dataset['dones'])
-        terminal_tracker = min(dones[0], traj_length-1)
+        terminal_tracker = min(dones[0], traj_length - 1)
         for done in dones:
             while terminal_tracker < done:
                 dataset['terminals'][terminal_tracker] = 1
@@ -214,15 +221,15 @@ def load_kitchen_dataset(h5path, traj_length, splice, filter_bad):
             terminal_tracker += traj_length
     else:
         dataset['terminals'] = np.zeros_like(dataset['dones'])
-        dataset['terminals'][traj_length-1::traj_length] = 1
+        dataset['terminals'][traj_length - 1::traj_length] = 1
     if filter_bad:
         # get reward per trajectory
         cum_rew = dataset['rewards'].cumsum().astype(int)
         cum_rew_per_traj = cum_rew[dataset['terminals'].astype(bool)]
-        reward_per_traj = cum_rew_per_traj - np.roll(cum_rew_per_traj,shift=1)
+        reward_per_traj = cum_rew_per_traj - np.roll(cum_rew_per_traj, shift=1)
         reward_per_traj[0] = cum_rew_per_traj[0]
-        start = np.insert(dataset['terminals'].nonzero()[0]+1, 0, 0)[:-1]
-        stop = dataset['terminals'].nonzero()[0]+1
+        start = np.insert(dataset['terminals'].nonzero()[0] + 1, 0, 0)[:-1]
+        stop = dataset['terminals'].nonzero()[0] + 1
         # filter trajectories by reward
         keep_idxs = np.zeros_like(dataset['terminals']).astype(bool)
         for reward, start, stop in zip(reward_per_traj, start, stop):
@@ -234,6 +241,7 @@ def load_kitchen_dataset(h5path, traj_length, splice, filter_bad):
         for k, v in dataset.items():
             dataset[k] = v[300000:400000]
     return dataset
+
 
 def load_door_dataset(h5path, traj_length):
     dataset_file = h5py.File(h5path, "r")
@@ -250,16 +258,17 @@ def load_door_dataset(h5path, traj_length):
             dim_obs = v.shape[1]
         else:
             dim_obs = 1
-        v = v[490000:500000] # empty after 500k
-        v = v.reshape((traj_length, -1, dim_obs)) # 500, 20, d
-        v = v.transpose(1, 0, 2) # batch id should be leading axis
-        dataset[k] = v.reshape((10000, -1)).squeeze() # flatten again
+        v = v[490000:500000]  # empty after 500k
+        v = v.reshape((traj_length, -1, dim_obs))  # 500, 20, d
+        v = v.transpose(1, 0, 2)  # batch id should be leading axis
+        dataset[k] = v.reshape((10000, -1)).squeeze()  # flatten again
 
     # add terminal flag
     dataset['terminals'] = np.zeros(500000)
-    dataset['terminals'][traj_length-1::traj_length] = 1
+    dataset['terminals'][traj_length - 1::traj_length] = 1
     dataset['terminals'] = dataset['terminals'][490000:500000]
     return dataset
+
 
 def index_batch(batch, indices):
     indexed = {}
@@ -269,12 +278,14 @@ def index_batch(batch, indices):
             indexed[key] = np.expand_dims(indexed[key], 2)
     return indexed
 
+
 def index_batch_flat_n(batch, indices, size, n_steps):
     """Index into batches formatted (B, D)"""
     indexed = {}
     for key in batch.keys():
         indexed[key] = batch[key][indices].reshape(size, int(n_steps), -1)
     return indexed
+
 
 def index_batch_n(batch, indices, size, n_steps):
     """Index into batches formatted (T, B, D)"""
@@ -283,15 +294,18 @@ def index_batch_n(batch, indices, size, n_steps):
         indexed[key] = batch[key][indices[0], indices[1]].reshape(size, int(n_steps), -1)
     return indexed
 
+
 def parition_batch_train_test(batch, train_ratio):
     train_indices = np.random.rand(batch['observations'].shape[0]) < train_ratio
     train_batch = index_batch(batch, train_indices)
     test_batch = index_batch(batch, ~train_indices)
     return train_batch, test_batch
 
+
 def subsample_batch(batch, size):
     indices = np.random.randint(batch['observations'].shape[0], size=size)
     return index_batch(batch, indices)
+
 
 def subsample_flat_batch_n(batch, size, n_steps):
     dones = batch['terminals'].nonzero()[0]
@@ -300,32 +314,33 @@ def subsample_flat_batch_n(batch, size, n_steps):
         dones_and_lens = np.vstack((
             np.roll(dones, shift=1),
             np.diff(dones, prepend=0)))
-        dones_and_lens[0,0] = 0
+        dones_and_lens[0, 0] = 0
         # select (batch_idx, len) pairs from batch
         batch_indices = np.random.choice(dones.shape[0], size=size)
-        batch_indices_and_lens = dones_and_lens[:,batch_indices]
+        batch_indices_and_lens = dones_and_lens[:, batch_indices]
         # select steps from trajectory
-        traj_indices = np.random.randint(batch_indices_and_lens[1]-n_steps)
+        traj_indices = np.random.randint(batch_indices_and_lens[1] - n_steps)
         # add with done_idx to get flat indices
         indices = traj_indices + batch_indices_and_lens[0]
     else:
-        indices = np.random.randint(batch['terminals'].shape[0]-n_steps, size=size)
+        indices = np.random.randint(batch['terminals'].shape[0] - n_steps, size=size)
     # add next n_steps to trajectory indices
     ascending_idxs = np.tile(np.arange(n_steps), size)
     indices = np.repeat(indices, n_steps) + ascending_idxs
-    return index_batch_flat_n(batch, indices, size, n_steps) # B, N, D
+    return index_batch_flat_n(batch, indices, size, n_steps)  # B, N, D
+
 
 def subsample_batch_n(batch, size, n_steps):
     ascending_idxs = np.tile(np.arange(n_steps), size)
     # pick random steps in trajectory
-    traj_indices = np.random.randint(batch['rewards'].shape[0]-n_steps, size=size)
+    traj_indices = np.random.randint(batch['rewards'].shape[0] - n_steps, size=size)
     # add next n_steps to trajectory indices
     traj_indices = np.repeat(traj_indices, n_steps) + ascending_idxs
     # pick trajectories from batch and repeat for n steps
     batch_indices = np.random.randint(batch['rewards'].shape[1], size=size)
     batch_indices = np.repeat(batch_indices, n_steps)
-    indices = np.vstack((traj_indices, batch_indices)).astype(int) # should be T, B
-    return index_batch_n(batch, indices, size, n_steps) # N, 1, D
+    indices = np.vstack((traj_indices, batch_indices)).astype(int)  # should be T, B
+    return index_batch_n(batch, indices, size, n_steps)  # N, 1, D
 
 
 def concatenate_batches(batches):

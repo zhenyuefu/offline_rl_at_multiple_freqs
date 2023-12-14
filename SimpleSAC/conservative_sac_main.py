@@ -15,7 +15,7 @@ from metaworld.envs import ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE
 
 FLAGS_DEF = define_flags_with_default(
     env='halfcheetah-medium-v2',
-    max_traj_length=1000,
+    max_traj_length=800,
     seed=42,
     device='cpu',
     save_model=False,
@@ -31,10 +31,10 @@ FLAGS_DEF = define_flags_with_default(
     policy_log_std_multiplier=1.0,
     policy_log_std_offset=-1.0,
 
-    n_epochs=800,
+    n_epochs=500,
     n_train_step_per_epoch=1000,
-    eval_period=10,
-    eval_n_trajs=5,
+    eval_period=5,
+    eval_n_trajs=10,
     load_model='',
     visualize_traj=False,
     N_steps=0.0,
@@ -83,7 +83,7 @@ def main(argv):
             else:
                 half_angle = False
             datasets[dt] = load_pendulum_dataset(
-                f"/root/autodl-tmp/rlmf/dau/pendulum_{str(dt)[2:]}.hdf5",
+                f"/root/autodl-tmp/rlmf/pendulum_dataset_{str(dt)[2:]}.hdf5",
                 half_angle=half_angle)
     elif "door-open-v2-goal-observable" in FLAGS.env:
         # find correct buffer file
